@@ -1,69 +1,82 @@
-import re
-import os
 import sys
+import urllib2
 
 import xbmcgui
 import xbmcplugin
 
 import simplejson
-import danishaddons
-import danishaddons.web
 
+INDEX_URL = 'http://videovideo.dk/index/json/'
 SHOWS_URL = 'http://videovideo.dk/shows/json/'
-EPISODES_URL = 'http://videovideo.dk/episodes/json/show_id/%s'
-RSS_URL_TEMPLATE = 'http://videovideo.dk/show/%s/rss/720/mp4'
 
-def showOverview():
-    json_path = os.path.join(danishaddons.ADDON_DATA_PATH, 'shows.json')
-    json = danishaddons.web.downloadAndCacheUrl(SHOWS_URL, json_path, 24 * 60)
+class VideoVideoHD(object):
+    def showOverview(self):
+        shows = simplejson.loads(self.downloadUrl(SHOWS_URL))
+        teasers = simplejson.loads(self.downloadUrl(INDEX_URL))
 
-    shows = simplejson.loads(json)
-    for show in shows:
-        item = xbmcgui.ListItem(show['title'], iconImage = show['image'])
-        item.setInfo(type = 'video', infoLabels = {
-            'title' : show['title'],
-            'plot' : show['description']
-        })
-        item.setProperty('Fanart_Image', show['imagefull'])
+        for show in shows:
+            item = xbmcgui.ListItem(show['title'], iconImage = show['image'])
+            item.setInfo(type = 'video', infoLabels = {
+                'title' : show['title'],
+                'plot' : show['description']
+            })
+            item.setProperty('Fanart_Image', show['imagefull'])
+            url = PATH + '?' + show['url']
+            xbmcplugin.addDirectoryItem(HANDLE, url, item, True)
 
-        m = re.search('([0-9]+)$', show['url'])
-        show_id = m.group(1)
-        
-        url = danishaddons.ADDON_PATH + '?id=' + show_id
-        xbmcplugin.addDirectoryItem(danishaddons.ADDON_HANDLE, url, item, True)
+        for teaser in teasers:
+            item = xbmcgui.ListItem(teaser['headline'], iconImage = teaser['image'])
+            item.setInfo(type = 'video', infoLabels = {
+                'title' : teaser['headline'],
+                'plot' : teaser['text'],
+                'duration' : teaser['episode']['duration']
+            })
+            item.setProperty('Fanart_Image', teaser['episode']['imagefull'])
+            url = PATH + '?' + teaser['episode']['distributions']['720']
+            xbmcplugin.addDirectoryItem(HANDLE, url, item, False)
 
-    xbmcplugin.endOfDirectory(danishaddons.ADDON_HANDLE)
-    
-def showShow(id):
-    json_path = os.path.join(danishaddons.ADDON_DATA_PATH, 'episodes_%s.json' % id)
-    json = danishaddons.web.downloadAndCacheUrl(EPISODES_URL % id, json_path, 24 * 60)
 
-    episodes = simplejson.loads(json)
-    for episode in episodes:
-        item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'])
+        xbmcplugin.endOfDirectory(HANDLE)
 
-        date = '%s.%s.%s' % (episode['timestamp'][8:10], episode['timestamp'][5:7], episode['timestamp'][0:4])
+    def showShow(self, url):
+        episodes = simplejson.loads(self.downloadUrl(url))
+        for episode in episodes:
+            item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'])
 
-        infoLabels = {
-            'title' : episode['title'],
-            'plot' : episode['shownotes'],
-            'date' : date,
-            'aired' : episode['timestamp'][0:11],
-            'year' : int(episode['timestamp'][0:4])
-        }
-        item.setInfo('video', infoLabels)
-        item.setProperty('Fanart_Image', episode['imagefull'])
-        xbmcplugin.addDirectoryItem(danishaddons.ADDON_HANDLE, episode['distributions']['720'], item, False)
+            date = '%s.%s.%s' % (episode['timestamp'][8:10], episode['timestamp'][5:7], episode['timestamp'][0:4])
 
-    xbmcplugin.addSortMethod(danishaddons.ADDON_HANDLE, xbmcplugin.SORT_METHOD_DATE)
-    xbmcplugin.endOfDirectory(danishaddons.ADDON_HANDLE)
+            infoLabels = {
+                'title' : episode['title'],
+                'plot' : episode['shownotes'],
+                'date' : date,
+                'aired' : episode['timestamp'][0:11],
+                'year' : int(episode['timestamp'][0:4]),
+                'duration' : episode['duration']
+            }
+            item.setInfo('video', infoLabels)
+            item.setProperty('Fanart_Image', episode['imagefull'])
+            xbmcplugin.addDirectoryItem(HANDLE, episode['distributions']['720'], item, False)
+
+        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
+        xbmcplugin.endOfDirectory(HANDLE)
+
+    def downloadUrl(self, url):
+        u = urllib2.urlopen(url)
+        response = u.read()
+        u.close()
+
+        return response
 
 
 if __name__ == '__main__':
-    danishaddons.init(sys.argv)
+    vvd = VideoVideoHD()
 
-    if danishaddons.ADDON_PARAMS.has_key('id'):
-        showShow(danishaddons.ADDON_PARAMS['id'])
+    PATH = sys.argv[0]
+    HANDLE = int(sys.argv[1])
+    PARAMS = sys.argv[2]
+
+    if PARAMS != '':
+        vvd.showShow(PARAMS[1:]) # remove ?
     else:
-        showOverview()
+        vvd.showOverview()
 
