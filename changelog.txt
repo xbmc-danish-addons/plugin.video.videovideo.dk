@@ -1,6 +1,7 @@
 [B]Version 1.1.2[/B]
 - Removed depdency on script.module.danishaddons
 - Added teaser clips on below shows listing
+- Added setting to hide teaser clips
 
 [B]Version 1.1.1[/B]
 - Prepare for official repository
