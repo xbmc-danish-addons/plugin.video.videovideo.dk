@@ -50,11 +50,12 @@ class VideoVideoHD(object):
 
         if teasers is not None:
             for teaser in teasers:
-                item = xbmcgui.ListItem(teaser['headline'], iconImage = teaser['image'])
+                item = xbmcgui.ListItem(teaser['headline'], iconImage = teaser['image'], thumbnailImage = teaser['image'])
                 item.setInfo(type = 'video', infoLabels = {
                     'title' : teaser['headline'],
                     'plot' : teaser['text'],
-                    'duration' : teaser['episode']['duration']
+                    'duration' : teaser['episode']['duration'],
+                    'studio' : ADDON.getAddonInfo('name')
                 })
                 item.setProperty('Fanart_Image', teaser['episode']['imagefull'])
                 url = teaser['episode']['distributions']['720']
@@ -66,7 +67,7 @@ class VideoVideoHD(object):
         items = list()
         episodes = simplejson.loads(self.downloadUrl(url))
         for episode in episodes:
-            item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'])
+            item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'], thumbnailImage = episode['image'])
 
             day = episode['timestamp'][8:10]
             month = episode['timestamp'][5:7]
@@ -81,14 +82,15 @@ class VideoVideoHD(object):
                 'date' : date,
                 'aired' : aired,
                 'year' : int(year),
-                'duration' : episode['duration']
+                'duration' : episode['duration'],
+                'studio' : ADDON.getAddonInfo('name')
             }
             item.setInfo('video', infoLabels)
             item.setProperty('Fanart_Image', episode['imagefull'])
             url = episode['distributions']['720']
             items.append((url, item, False))
 
-        xbmcplugin.addDirectoryItems(HANDLE, url, items)
+        xbmcplugin.addDirectoryItems(HANDLE, items)
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(HANDLE)
 
