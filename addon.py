@@ -1,20 +1,39 @@
+#
+#      Copyright (C) 2012 Tommy Winther
+#      http://tommy.winther.nu
+#
+#  This Program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2, or (at your option)
+#  any later version.
+#
+#  This Program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this Program; see the file LICENSE.txt. If not, write to
+#  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+#  http://www.gnu.org/copyleft/gpl.html
+#
 import sys
 import urllib2
 import simplejson
+import buggalo
 
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
 
 class VideoVideoHD(object):
-    ADDON = xbmcaddon.Addon(id = 'plugin.video.videovideo.dk')
     INDEX_URL = 'http://videovideo.dk/index/json/'
     SHOWS_URL = 'http://videovideo.dk/shows/json/'
 
     def showOverview(self):
         shows = simplejson.loads(self.downloadUrl(self.SHOWS_URL))
 
-        if self.ADDON.getSetting('show.teasers') == 'true':
+        if ADDON.getSetting('show.teasers') == 'true':
             teasers = simplejson.loads(self.downloadUrl(self.INDEX_URL))
         else:
             teasers = None
@@ -44,6 +63,7 @@ class VideoVideoHD(object):
         xbmcplugin.endOfDirectory(HANDLE)
 
     def showShow(self, url):
+        items = list()
         episodes = simplejson.loads(self.downloadUrl(url))
         for episode in episodes:
             item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'])
@@ -66,8 +86,9 @@ class VideoVideoHD(object):
             item.setInfo('video', infoLabels)
             item.setProperty('Fanart_Image', episode['imagefull'])
             url = episode['distributions']['720']
-            xbmcplugin.addDirectoryItem(HANDLE, url, item, False)
+            items.append((url, item, False))
 
+        xbmcplugin.addDirectoryItems(HANDLE, url, items)
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(HANDLE)
 
@@ -88,17 +109,17 @@ class VideoVideoHD(object):
 
 
 if __name__ == '__main__':
-    vvd = VideoVideoHD()
-
-    # XBMC provides three values in the sys.argv array, such as:
-    # ['plugin://plugin.video.videovideo.dk/', '0', '']
-    # Copy the values to meaningful variables
+    ADDON = xbmcaddon.Addon()
     PATH = sys.argv[0]
     HANDLE = int(sys.argv[1])
     PARAMS = sys.argv[2]
 
-    if PARAMS != '':
-        vvd.showShow(PARAMS[1:]) # remove ?
-    else:
-        vvd.showOverview()
+    try:
+        vvd = VideoVideoHD()
+        if PARAMS != '':
+            vvd.showShow(PARAMS[1:]) # remove ?
+        else:
+            vvd.showOverview()
+    except Exception:
+        buggalo.onExceptionRaised()
 
