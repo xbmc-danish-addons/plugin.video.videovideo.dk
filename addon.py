@@ -26,15 +26,18 @@ import xbmcaddon
 import xbmcgui
 import xbmcplugin
 
+class VideoVideoException(Exception):
+    pass
+
 class VideoVideoHD(object):
     INDEX_URL = 'http://videovideo.dk/index/json/'
     SHOWS_URL = 'http://videovideo.dk/shows/json/'
 
     def showOverview(self):
-        shows = simplejson.loads(self.downloadUrl(self.SHOWS_URL))
+        shows = self.downloadJson(self.SHOWS_URL)
 
         if ADDON.getSetting('show.teasers') == 'true':
-            teasers = simplejson.loads(self.downloadUrl(self.INDEX_URL))
+            teasers = self.downloadJson(self.INDEX_URL)
         else:
             teasers = None
 
@@ -65,7 +68,7 @@ class VideoVideoHD(object):
 
     def showShow(self, url):
         items = list()
-        episodes = simplejson.loads(self.downloadUrl(url))
+        episodes = self.downloadJson(url)
         for episode in episodes:
             item = xbmcgui.ListItem(episode['title'], iconImage = episode['image'], thumbnailImage = episode['image'])
 
@@ -94,20 +97,22 @@ class VideoVideoHD(object):
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(HANDLE)
 
-    def downloadUrl(self, url):
-        """
-        Retrieves and returns the contents of the provided url.
-        Errors are not handled.
+    def downloadJson(self, url):
+        try:
+            u = urllib2.urlopen(url)
+            response = u.read()
+            u.close()
+            return simplejson.loads(response)
+        except Exception, ex:
+            raise VideoVideoException(ex)
 
-        @param self: VideoVideoHD instance
-        @param url: the url to retrieve
-        @return: the contents of the url
-        """
-        u = urllib2.urlopen(url)
-        response = u.read()
-        u.close()
+    def showError(self, message = 'n/a'):
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
-        return response
+        heading = buggalo.getRandomHeading()
+        line1 = ADDON.getLocalizedString(30900)
+        line2 = ADDON.getLocalizedString(30901)
+        xbmcgui.Dialog().ok(heading, line1, line2, message)
 
 
 if __name__ == '__main__':
@@ -116,12 +121,17 @@ if __name__ == '__main__':
     HANDLE = int(sys.argv[1])
     PARAMS = sys.argv[2]
 
+    buggalo.SUBMIT_URL = 'http://tommy.winther.nu/exception/submit.php'
+    vvd = VideoVideoHD()
     try:
-        vvd = VideoVideoHD()
         if PARAMS != '':
             vvd.showShow(PARAMS[1:]) # remove ?
         else:
             vvd.showOverview()
+
+    except VideoVideoException, ex:
+        vvd.showError(str(ex))
+
     except Exception:
         buggalo.onExceptionRaised()
 
