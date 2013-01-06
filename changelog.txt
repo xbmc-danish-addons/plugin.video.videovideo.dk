@@ -1,4 +1,4 @@
-[B]Version 2.0.3 - 2012-12-28[/B]
+[B]Version 3.0.0 - 2013-01-06[/B]
 - Fixed addon on Frodo
 - Fixed parsing of duration
 
