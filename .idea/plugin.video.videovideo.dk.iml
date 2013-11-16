@@ -10,5 +10,12 @@
     <orderEntry type="module" module-name="xbmcstubs" />
     <orderEntry type="module" module-name="script.module.buggalo" />
   </component>
+  <component name="PyDocumentationSettings">
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="projectConfiguration" value="Unittests" />
+    <option name="PROJECT_TEST_RUNNER" value="Unittests" />
+  </component>
 </module>
 
